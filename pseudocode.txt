@@ -1,7 +1,7 @@
 Traverse-and-Conquer Algorithm
 by K. Greger and M. Heinrichs
 
-v. 0.1.20150112
+v. 0.1.20150113
 
 define polygons from street network data such that
 	each polygon edge is defined by a single street segment or the outline of a study area
