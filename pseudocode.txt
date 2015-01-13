@@ -1,0 +1,33 @@
+Traverse-and-Conquer Algorithm
+by K. Greger and M. Heinrichs
+
+v. 0.1.20150112
+
+define polygons from street network data such that
+	each polygon edge is defined by a single street segment or the outline of a study area
+	each polygon has knowledge of
+		its directly neighboring polygons
+		the class of the street segment that divides it from each neighboring polygon
+		the euclidian straight-line distance between its own centroid and each neighboring polygon
+
+for each obstacle class (from lowest to highest)
+	for each polygon
+		check if populated
+		-> yes
+			gather non-populated neighboring polygons
+			filter for current obstacle class
+			check number of polygons available
+			-> multiple
+				select polygon by shortest euclidian straight-line distance between centroids
+			-> one
+				select polygon
+			-> exit and continue with next polygon
+			mark selected polygon as candidate for current cluster (add to candidate list)
+		-> no
+			do nothing
+		for each polygon in candidate list
+			check number of candidate options
+			-> multiple
+				assign cluster by shortest euclidian straight-line distance between centroids
+			-> one
+				assign cluster
