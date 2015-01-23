@@ -1,0 +1,28 @@
+Pre-process Data for TaC-Algorithm
+----------------------------------
+
+1. Study area
+	1.1 Download study area outline from OSM
+	1.2 Import study area outline into database (cf. comment for perseus.temp.hamburg_outline)
+	1.3 Manually check for islands and exclaves
+
+2. Road network
+	2.1 Download road network data from OSM
+	2.2 Import road network data into database
+	2.3 Classify road network incl. study area outline (cf. osm_road_classes.txt)
+	2.4 Clean topology of classified road network (can also be done in PostGIS >2.0)
+		2.4.1 v.ogr.in.qgis
+		2.4.2 v.clean.break)
+		2.4.3 delete and re-import to database
+
+3. Generate cells from OSM road network data
+	3.1 Polygonize road network (can also be done in PostGIS >2.0)
+		3.1.1 QGIS > Processing > Toolbox > Polygonize
+		3.1.2 Import cells from SHP file into database
+	3.2 clip to study area
+		DELETE FROM temp.hamburg_cells c 
+		USING temp.hamburg_outline o 
+		WHERE ST_Disjoint(ST_PointOnSurface(c.the_geom), o.the_geom);
+	3.3 derive relationships between neighboring cells
+		
+	3.4 derive distances between neighboring cells

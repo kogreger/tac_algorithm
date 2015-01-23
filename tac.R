@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.1.20150118
+## Version 0.2.20150120
 ## Author: Konstantin Greger
 ##
 ##
@@ -24,6 +24,9 @@
 ##
 ## None of the functions have any error handing, so they will crash (or worse) 
 ## if used improperly. Use at your own risk!
+##
+## Change log:
+## v.0.2.20150120   switched to swarm conquering
 ##
 
 
@@ -51,7 +54,7 @@ tacVisualize <- function() {
 ### the distances between cell centroids are all the same (see grid.shp)
 numOfCells <- 21
 numOfObstacleClasses <- 3
-numOfSeeds <- 4
+numOfSeeds <- 2
 
 ## relations
 ## what are the obstacle classes between neighboring cells?
@@ -193,14 +196,13 @@ tacVisualize()
 for(obstacleClass in 1:numOfObstacleClasses) {
     ## initialize
     iter <- 0                  # counter for iterations per obstacleClass
-    everythingConquered = TRUE # flag to stop calculation
     
     ## run
     cat(paste0("Processing obstacleClass: ", obstacleClass, "\n"))
     while(!everythingConquered || iter == 0) {
         tacVisualize()
         iter <- iter + 1
-        everythingConquered = TRUE
+        everythingConquered = TRUE # flag to stop calculation
         attack <- data.frame(victim = 0,   # initialize dataframe for attacks
                              attacker = 0, 
                              dst = 0, 
@@ -227,30 +229,27 @@ for(obstacleClass in 1:numOfObstacleClasses) {
                     cat(paste0("    No suitable candidates found.\n"))
                 } else {
                     everythingConquered = FALSE
-                    if(dim(candidates)[1] > 1) {
-                        cat(paste0("    Found ", dim(candidates)[1], 
-                                   " suitable cells to be conquered, ", 
-                                   "selecting ideal victim.\n"))
-                    }
+                    candidateList <- character()
+                    cat(paste0("    Found ", dim(candidates)[1], 
+                                   " suitable cells to be conquered: "))
                     # look-up distance between cell centroids
                     candidates$dst <- dst[cell, candidates$id]
-                    # introduce random variable to handle ties
-                    candidates$rnd <- sample(1:dim(candidates)[1], 
-                                             dim(candidates)[1], 
-                                             replace = FALSE)
-                    # order candidates by suitability:
-                    # - by minimum distance
-                    # - by random variable in case of ties
-                    candidates <- candidates[with(candidates, 
-                                                  order(-dst, rnd)), ]
-                    cat(paste0("    Attempting to attack cell ", 
-                               candidates$id[1], ".\n"))
                     # collect all attacks (=attempted conqests)
-                    attack <- rbind(attack, c(candidates$id[1],   # victim
-                                              cell,               # attacker
-                                              candidates$dst[1],  # distance
-                                              cells$clust[cell])) # cluster of
-                                                                  # attacker
+                    for(cand in 1:dim(candidates)[1]) {
+                        candidateList <- paste(candidateList, 
+                                               candidates$id[cand], 
+                                               sep = ", ")
+                        attack <- rbind(attack, 
+                                        c(candidates$id[cand],   # victim
+                                          cell,                  # attacker
+                                          candidates$dst[cand],  # distance
+                                          cells$clust[cell]))    # cluster of
+                                                                 #   attacker
+                    }
+                    cat(paste0(substr(candidateList, 
+                                      3, 
+                                      nchar(candidateList)), 
+                               "\n"))
                 }
             }
         }

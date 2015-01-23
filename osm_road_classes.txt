@@ -1,0 +1,156 @@
+OSM Road Classes for TaC:
+-------------------------
+
+Class 7
+-------
+motorway
+motorway_link
+
+Class 6
+-------
+trunk
+trunk_link
+
+Class 5
+-------
+primary
+primary_link
+
+Class 4
+-------
+secondary
+secondary_link
+
+Class 3
+-------
+tertiary
+tertiary_link
+
+Class 2
+-------
+unclassified
+residential
+living_street
+
+Class 1
+-------
+service
+track
+pedestrian
+road
+footway
+cycleway
+bridleway
+steps
+path
+
+
+-- - insert road class 7
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 7 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+INTO public.osm_hh_roads 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'motorway' OR 
+	lower(tags -> 'highway') = 'motorway_link'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 6
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 6 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'trunk' OR 
+	lower(tags -> 'highway') = 'trunk_link'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 5
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 5 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'primary' OR 
+	lower(tags -> 'highway') = 'primary_link'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 4
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 4 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'secondary' OR 
+	lower(tags -> 'highway') = 'secondary_link'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 3
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 3 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'tertiary' OR 
+	lower(tags -> 'highway') = 'tertiary_link'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 2
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 2 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'living_street' OR 
+	lower(tags -> 'highway') = 'residential' OR 
+	lower(tags -> 'highway') = 'unclassified'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert road class 1
+INSERT INTO public.osm_hh_roads 
+SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 1 AS tac_class, ST_Transform(way, 4326) AS the_geom 
+FROM public.osm_hh_line 
+WHERE (
+	lower(tags -> 'highway') = 'bridleway' OR 
+	lower(tags -> 'highway') = 'cycleway' OR
+	lower(tags -> 'highway') = 'footway' OR 
+	lower(tags -> 'highway') = 'path' OR 
+	lower(tags -> 'highway') = 'pedestrian' OR 
+	lower(tags -> 'highway') = 'road' OR 
+	lower(tags -> 'highway') = 'service' OR 
+	lower(tags -> 'highway') = 'steps' OR 
+	lower(tags -> 'highway') = 'track'
+) AND ST_GeometryType(way) IN ('ST_LineString');
+
+-- - insert outline as road class 99
+--   (cf. http://longwayaround.org.uk/notes/disaggregate-multilinestrings-using-st_dump-postgis/)
+INSERT INTO public.osm_hh_roads 
+SELECT simple.osm_id + simple.path[1] as osm_id, -- generate quasi-unique osm ids
+	'outline' AS osm_highway, 
+	'Hamburg' AS osm_name, 
+	'99' AS tac_class, 
+	simple.simple_geom as the_geom 
+FROM
+(
+	SELECT dumped.*, 
+		(dumped.geom_dump).geom AS simple_geom, 
+		(dumped.geom_dump).path AS path
+	FROM
+	(
+		SELECT osm_id, 
+			ST_Dump(ST_Union(ST_Transform(way, 4326))) AS geom_dump 
+		FROM public.osm_hh_line 
+		WHERE (
+			"admin_level" = '4' AND 
+			"name" = 'Hamburg' AND 
+			ST_GeometryType(way) IN ('ST_LineString')
+		) 
+		GROUP BY osm_id
+	) AS dumped
+) AS simple
+
+SELECT populate_geometry_columns('public.osm_hh_roads'::regclass); 
+
+CREATE INDEX sidx_osm_hh_roads_the_geom 
+ON osm_hh_roads 
+USING gist 
+(the_geom);
+
+ALTER TABLE osm_hh_roads
+ADD CONSTRAINT pkey_osm_hh_roads PRIMARY KEY (osm_id);
+
+VACUUM FULL VERBOSE ANALYZE public.osm_hh_roads;
