@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.2.20150120
+## Version 0.3.20150123
 ## Author: Konstantin Greger
 ##
 ##
@@ -27,229 +27,115 @@
 ##
 ## Change log:
 ## v.0.2.20150120   switched to swarm conquering
+## v.0.3.20150123   use real data from database instead of dummy data
+##                  disable visualization
 ##
 
 
-### visualization routine
-tacVisualize <- function() {
-    # merge cluster result
-    shpGrid$clust <- cells$clust
-    # plot result on map
-    plot(shpGrid, lwd = .1, col = shpGrid$clust + 1)     # grid cells
-    plot(shpRoads,                                       # roads
-         add = TRUE, 
-         col = "white", 
-         lwd = shpRoads$class * 5)
-    plot(shpSeeds, add = TRUE)                           # seeds
-    invisible(text(coordinates(shpGrid),                 # grid cell labels
-                   labels = as.character(shpGrid$id), 
-                   cex = .7))
-    cat ("Press [enter] to continue")
-    line <- readline()
-}
-
-
 ### initialize
-### the artificial test world consists of 21 hexagonal cells in a 6x5 grid, 
-### the distances between cell centroids are all the same (see grid.shp)
-numOfCells <- 21
-numOfObstacleClasses <- 3
-numOfSeeds <- 2
-
-## relations
-## what are the obstacle classes between neighboring cells?
-# initialize all relations as obstacle class 0
-rel <- matrix(0, nrow = numOfCells, ncol = numOfCells)
-# set matrix diagonal to 0
-diag(rel) <- 0
-# set actual obstacle classes (see roads.shp)
-rel[1, 2] <- 3
-rel[1, 7] <- 1
-rel[1, 8] <- 1
-rel[2, 1] <- 3
-rel[2, 3] <- 1
-rel[2, 8] <- 3
-rel[3, 2] <- 1
-rel[3, 4] <- 1
-rel[3, 8] <- 3
-rel[3, 9] <- 3
-rel[3, 10] <- 1
-rel[4, 3] <- 1
-rel[4, 5] <- 1
-rel[4, 10] <- 1
-rel[5, 4] <- 1
-rel[5, 6] <- 1
-rel[5, 10] <- 1
-rel[5, 11] <- 1
-rel[5, 12] <- 1
-rel[6, 5] <- 1
-rel[6, 12] <- 1
-rel[7, 1] <- 1
-rel[7, 8] <- 1
-rel[7, 13] <- 1
-rel[7, 14] <- 1
-rel[8, 1] <- 1
-rel[8, 2] <- 3
-rel[8, 3] <- 3
-rel[8, 7] <- 1
-rel[8, 9] <- 2
-rel[8, 14] <- 1
-rel[9, 3] <- 3
-rel[9, 8] <- 2
-rel[9, 10] <- 3
-rel[9, 14] <- 2
-rel[9, 15] <- 1
-rel[9, 16] <- 1
-rel[10, 3] <- 1
-rel[10, 4] <- 1
-rel[10, 5] <- 1
-rel[10, 9] <- 3
-rel[10, 11] <- 1
-rel[10, 16] <- 3
-rel[11, 5] <- 1
-rel[11, 10] <- 1
-rel[11, 12] <- 1
-rel[11, 16] <- 3
-rel[11, 17] <- 1
-rel[11, 18] <- 1
-rel[12, 5] <- 1
-rel[12, 6] <- 1
-rel[12, 11] <- 1
-rel[12, 18] <- 1
-rel[13, 7] <- 1
-rel[13, 14] <- 1
-rel[13, 19] <- 1
-rel[14, 7] <- 1
-rel[14, 8] <- 1
-rel[14, 9] <- 2
-rel[14, 13] <- 1
-rel[14, 15] <- 2
-rel[14, 19] <- 1
-rel[15, 9] <- 1
-rel[15, 14] <- 2
-rel[15, 16] <- 1
-rel[15, 19] <- 2
-rel[15, 20] <- 1
-rel[16, 9] <- 1
-rel[16, 10] <- 3
-rel[16, 11] <- 3
-rel[16, 15] <- 1
-rel[16, 17] <- 3
-rel[16, 20] <- 1
-rel[17, 11] <- 1
-rel[17, 16] <- 3
-rel[17, 18] <- 1
-rel[17, 20] <- 3
-rel[17, 21] <- 1
-rel[18, 11] <- 1
-rel[18, 12] <- 1
-rel[18, 17] <- 1
-rel[18, 21] <- 1
-rel[19, 13] <- 1
-rel[19, 14] <- 1
-rel[19, 15] <- 2
-rel[20, 15] <- 1
-rel[20, 16] <- 1
-rel[20, 17] <- 3
-rel[21, 17] <- 1
-rel[21, 18] <- 1
-
-## distances
-## how far are the centroids of neighboring cells away?
-# set all distances to 500m
-dst <- matrix(0, nrow = numOfCells, ncol = numOfCells)
-dst <- (rel != 0) * 500
-
-## seeds
-## which cells are the seeds located in? (see seeds2., seeds. & seeds4.shp)
-if(numOfSeeds == 2) {         # 2 seeds
-    seeds <- data.frame(id = seq(1:numOfSeeds), loc = c(8, 5))
-} else if (numOfSeeds == 3) { # 3 seeds
-    seeds <- data.frame(id = seq(1:numOfSeeds), loc = c(8, 16, 5))
-} else if (numOfSeeds == 4) { # 4 seeds
-    seeds <- data.frame(id = seq(1:numOfSeeds), loc = c(8, 16, 5, 4))
-}
-
-## cells
-cells <- data.frame(id = seq(1:numOfCells), clust = rep(0, numOfCells))
-cells$clust[seeds$loc] <- seeds$id
-
-## visualization
+debug <- FALSE
+## load data from database
+if(debug) cat("Initializing TaC algorithm.")
 library(maptools)
-# load SHP files
-shpGrid <- readShapePoly("grid.shp")
-if(numOfSeeds == 2) {         # 2 seeds
-    shpSeeds <- readShapePoints("seeds2.shp")
-} else if (numOfSeeds == 3) { # 3 seeds
-    shpSeeds <- readShapePoints("seeds.shp")
-} else if (numOfSeeds == 4) { # 4 seeds
-    shpSeeds <- readShapePoints("seeds4.shp")
-}
-shpRoads <- readShapeLines("roads.shp")
-# order grid cells by cell id
-shpGrid <- shpGrid[order(shpGrid$id), ]
-tacVisualize()
+library(RPostgreSQL)
+source("psqlHelper.R")
+connection <- dbConnect(dbDriver("PostgreSQL"), 
+                        host = "129.247.221.172", 
+                        port = "5432", 
+                        user = "postgres", 
+                        password = "postgres", 
+                        dbname = "tapas")
+# relationships
+if(debug) cat(".")
+rel <- psqlGetTable(connection, "temp", "hamburg_relationships")
+numOfRelationships <- dim(rel)[1]
+numOfObstacleClasses <- range(rel$obst)[2] - range(rel$obst)[1] + 1
+# seeds
+if(debug) cat(".")
+seeds <- psqlQuery(connection, 
+                   paste0("SELECT s.gid id, c.gid loc ", 
+                          "FROM temp.hamburg_seeds s, temp.hamburg_cells c ", 
+                          "WHERE ST_Within(s.the_geom, c.the_geom) ", 
+                          "ORDER BY s.gid"))
+numOfSeeds <- dim(seeds)[1]
+# cells
+if(debug) cat(".")
+cells <- psqlQuery(connection, 
+                   paste0("SELECT DISTINCT(a) id ", 
+                          "FROM temp.hamburg_relationships ", 
+                          "ORDER BY a"))
+cells$clust <- seeds$id[match(cells$id, seeds$loc)]
+numOfCells <- dim(cells)[1]
+dbDisconnect(connection)
+# internal statistics
+iter <- 0                                   # counter for iterations
+tacStats <- data.frame(iter = integer(),    # data frame for general statistics
+                       obstClass = integer(), 
+                       battles = integer())
+clustStats <- matrix(cells$clust)           # matrix for cluster statistics
+if(debug) cat(".\n")
+if(debug) cat("Initialization finished\n\n")
 
 
 
 ### start algorithm
-for(obstacleClass in 1:numOfObstacleClasses) {
+if(debug) cat("Starting calculation\n")
+for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
     ## initialize
-    iter <- 0                  # counter for iterations per obstacleClass
+    everythingConquered = TRUE # flag to stop calculation
     
     ## run
-    cat(paste0("Processing obstacleClass: ", obstacleClass, "\n"))
+    if(debug) cat(paste0("----Processing obstClass: ", obstClass, "\n"))
     while(!everythingConquered || iter == 0) {
-        tacVisualize()
         iter <- iter + 1
-        everythingConquered = TRUE # flag to stop calculation
-        attack <- data.frame(victim = 0,   # initialize dataframe for attacks
-                             attacker = 0, 
+        everythingConquered = TRUE
+        attack <- data.frame(attacker = 0,   # initialize dataframe for attacks
+                             victim = 0, 
                              dst = 0, 
                              cluster = 0)
-        cat(paste0("--Iteration #", iter, "\n"))
+        if(debug) cat(paste0("--Iteration #", iter, "\n"))
         ## scout for suitable cells to be conquered
-        for(cell in 1:numOfCells) {
-            cat(paste0("  Cell ", cell, " "))
-            if(cells$clust[cell] == 0) {
-                cat(paste0("is waiting to be conquered.\n"))
+        for(cell in cells$id) {
+            if(debug) cat(paste0("  Cell ", cell, " "))
+            if(with(cells, 
+                    (clust[id == cell] == 0) | (is.na(clust[id == cell])))) {
+                if(debug) cat(paste0("is waiting to be conquered.\n"))
             } else {
-                cat(paste0("belongs to cluster ", cells$clust[cell], 
-                           ", is now trying to conquer neighbors.\n"))
+                if(debug) cat(paste0("belongs to cluster ", 
+                                     with(cells, clust[id == cell]), 
+                                     ", is now trying to conquer neighbors.\n"))
                 # identify suitable candidates:
                 # - neighboring cells
-                # - not conquered yet
                 # - currently crossable borders
-                candidates <- subset(cells,
-                                     dst[cell, ] != 0
-                                     & cells$clust == 0
-                                     & rel[cell, ] <= obstacleClass
-                )
-                if(dim(candidates)[1] == 0) {
-                    cat(paste0("    No suitable candidates found.\n"))
+                cands <- rel[rel$a == cell & 
+                                 rel$dst != 0 & 
+                                 rel$obst <= obstClass
+                                 , ]
+                # - and not conquered yet
+                cands <- cands[is.na(cells$clust[cells$id %in% cands$b]), ]
+                if(dim(cands)[1] == 0) {
+                    if(debug) cat(paste0("    No suitable candidates found.\n"))
                 } else {
                     everythingConquered = FALSE
                     candidateList <- character()
-                    cat(paste0("    Found ", dim(candidates)[1], 
-                                   " suitable cells to be conquered: "))
-                    # look-up distance between cell centroids
-                    candidates$dst <- dst[cell, candidates$id]
+                    if(debug) cat(paste0("    Found ", dim(cands)[1], 
+                                         " suitable cells to be conquered: "))
                     # collect all attacks (=attempted conqests)
-                    for(cand in 1:dim(candidates)[1]) {
+                    for(cand in 1:dim(cands)[1]) {
                         candidateList <- paste(candidateList, 
-                                               candidates$id[cand], 
+                                               cands$b[cand], 
                                                sep = ", ")
                         attack <- rbind(attack, 
-                                        c(candidates$id[cand],   # victim
-                                          cell,                  # attacker
-                                          candidates$dst[cand],  # distance
-                                          cells$clust[cell]))    # cluster of
-                                                                 #   attacker
+                                        c(cell,                      # attacker
+                                          cands$b[cand],             # victim   
+                                          cands$dst[cand],           # distance
+                                          cells$clust[cells$id == cell]))
+                                                                     # cluster
                     }
-                    cat(paste0(substr(candidateList, 
-                                      3, 
-                                      nchar(candidateList)), 
-                               "\n"))
+                    if(debug) cat(paste0(substr(candidateList, 
+                                                3, 
+                                                nchar(candidateList)), 
+                                         "\n"))
                 }
             }
         }
@@ -257,15 +143,16 @@ for(obstacleClass in 1:numOfObstacleClasses) {
         if(!everythingConquered) {
             # remove dummy row and order attacks by victim cell id
             attack <- subset(attack[order(attack$victim), ], victim != 0)
-            cat(paste0("  Battles for ", length(unique(attack$victim)), 
-                       " cells will be fought.\n"))
+            if(debug) cat(paste0("  Battles for ", 
+                                 length(unique(attack$victim)), 
+                                 " cells will be fought.\n"))
             # identify winner for each battled cell (victim)
             for(vic in unique(attack$victim)) {
-                cat(paste0("    Battle for cell ", vic, ": "))
+                if(debug) cat(paste0("    Battle for cell ", vic, ": "))
                 battle <- subset(attack, victim == vic)
                 if(dim(battle)[1] == 1) {
                     # there is only one attacker for this cell
-                    cat(paste0("No conflict, no battle.\n"))
+                    if(debug) cat(paste0("No conflict, no battle.\n"))
                 } else {
                     # there are multiple attackers for this cell
                     # introduce random variable to handle ties
@@ -276,15 +163,25 @@ for(obstacleClass in 1:numOfObstacleClasses) {
                     # - by minimum distance
                     # - by random variable in case of ties
                     battle <- battle[with(battle, order(-dst, rnd)), ]
-                    cat(paste0("Attacker ", battle$attacker[1], " won.\n"))
+                    if(debug) cat(paste0("Attacker ", 
+                                         battle$attacker[1], 
+                                         " won.\n"))
                 }
-                cat(paste0("    Attacker ", battle$attacker[1], 
-                           " conquered cell ", cells$id[vic], ".\n"))
+                if(debug) cat(paste0("    Attacker ", 
+                                     battle$attacker[1], 
+                                     " conquered cell ", 
+                                     battle$victim[1], ".\n"))
                 # update cluster information in cell data
-                cells$clust[vic] <- battle$cluster[1]
+                cells$clust[cells$id == vic] <- battle$cluster[1]
             }
         }
+        # update internal statistics
+        cat(c(iter, obstClass, length(unique(attack$victim))))
+        tacStats <- rbind(tacStats, c(iter, obstClass, length(unique(attack$victim))))
+        clustStats <- cbind(clustStats, cells$clust)
     }
-    cat(paste0("  Everything conquered on obstacleClass ", obstacleClass, 
-               ", climbing to next obstacleClass.\n"))
+    if(debug) cat(paste0("  Everything conquered on obstClass ", 
+                         obstClass, 
+                         ", climbing to next obstClass.\n"))
 }
+if(debug) cat("Done.")

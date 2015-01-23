@@ -23,6 +23,21 @@ Pre-process Data for TaC-Algorithm
 		DELETE FROM temp.hamburg_cells c 
 		USING temp.hamburg_outline o 
 		WHERE ST_Disjoint(ST_PointOnSurface(c.the_geom), o.the_geom);
-	3.3 derive relationships between neighboring cells
-		
-	3.4 derive distances between neighboring cells
+	3.3 derive distance and relationship between neighboring cells
+		CREATE UNLOGGED TABLE temp.hamburg_relationships AS
+		SELECT c1.gid a, c2.gid b, 
+			ST_Distance_Sphere(ST_PointOnSurface(c1.the_geom), ST_PointOnSurface(c2.the_geom)) dst, 
+			MAX(r.tac_class)::integer obst 
+		FROM temp.hamburg_cells c1, temp.hamburg_cells c2, temp.hamburg_roads r 
+		WHERE c1.gid != c2.gid AND 
+			(ST_Covers(c1.the_geom, r.the_geom) AND 
+			ST_Covers(c2.the_geom, r.the_geom)) 
+		GROUP BY c1.gid, c2.gid 
+		ORDER BY c1.gid, c2.gid;
+
+4. Seeds
+	4.1 Import seeds
+	4.2 Check for multiple seeds per cell
+		4.2.1 QGIS > Vector > Analysis Tools > Points in polygon
+		4.2.2 Symbolize resulting SHP file using check_seed_conflict.qml
+		4.2.3 Manually delete unnecessary seeds (should be merge)
