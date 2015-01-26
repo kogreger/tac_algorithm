@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.3.20150123
+## Version 0.4.20150126
 ## Author: Konstantin Greger
 ##
 ##
@@ -29,6 +29,7 @@
 ## v.0.2.20150120   switched to swarm conquering
 ## v.0.3.20150123   use real data from database instead of dummy data
 ##                  disable visualization
+## v.0.4.20150126   switched to more effective cell handling using update-flag
 ##
 
 
@@ -40,11 +41,13 @@ library(maptools)
 library(RPostgreSQL)
 source("psqlHelper.R")
 connection <- dbConnect(dbDriver("PostgreSQL"), 
-                        host = "129.247.221.172", 
+                        #host = "129.247.221.172", 
+                        host = "localhost", 
                         port = "5432", 
                         user = "postgres", 
                         password = "postgres", 
-                        dbname = "tapas")
+                        #dbname = "tapas")
+                        dbname = "postgres")
 # relationships
 if(debug) cat(".")
 rel <- psqlGetTable(connection, "temp", "hamburg_relationships")
@@ -83,9 +86,11 @@ if(debug) cat("Starting calculation\n")
 for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
     ## initialize
     everythingConquered = TRUE # flag to stop calculation
+    # identify scouting cells
+    cells$updated <- !is.na(cells$clust)
     
     ## run
-    if(debug) cat(paste0("----Processing obstClass: ", obstClass, "\n"))
+    cat(paste0("----Processing obstClass: ", obstClass, "\n"))
     while(!everythingConquered || iter == 0) {
         iter <- iter + 1
         everythingConquered = TRUE
@@ -93,9 +98,14 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
                              victim = 0, 
                              dst = 0, 
                              cluster = 0)
-        if(debug) cat(paste0("--Iteration #", iter, "\n"))
-        ## scout for suitable cells to be conquered
-        for(cell in cells$id) {
+        cat(paste0("--Iteration #", iter, "\n"))
+        
+        ## scout for suitable cells to be conquered by cells that have been 
+        ##  updated in previous iteration (or from start)
+        toDo <- length(cells$id[cells$updated])
+        if(debug) cat(paste0(todo, 
+                             " cells will scout for cells to be conquered.\n"))
+        for(cell in cells$id[cells$updated]) {
             if(debug) cat(paste0("  Cell ", cell, " "))
             if(with(cells, 
                     (clust[id == cell] == 0) | (is.na(clust[id == cell])))) {
@@ -138,7 +148,10 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
                                          "\n"))
                 }
             }
+            # don't check this cell in next iteration
+            cells$updated[cells$id == cell] <- FALSE
         }
+        
         ## fight actual battles for cells
         if(!everythingConquered) {
             # remove dummy row and order attacks by victim cell id
@@ -173,15 +186,28 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
                                      battle$victim[1], ".\n"))
                 # update cluster information in cell data
                 cells$clust[cells$id == vic] <- battle$cluster[1]
+                # mark cell to be checked in next iteration
+                cells$updated[cells$id == vic] <- TRUE
             }
         }
         # update internal statistics
-        cat(c(iter, obstClass, length(unique(attack$victim))))
-        tacStats <- rbind(tacStats, c(iter, obstClass, length(unique(attack$victim))))
+        cat(paste0(c(iter, 
+                     obstClass, 
+                     toDo, 
+                     length(unique(attack$victim)))), 
+            "\n")
+        tacStats <- rbind(tacStats, c(iter, 
+                                      obstClass, 
+                                      toDo, 
+                                      length(unique(attack$victim))))
         clustStats <- cbind(clustStats, cells$clust)
     }
     if(debug) cat(paste0("  Everything conquered on obstClass ", 
                          obstClass, 
                          ", climbing to next obstClass.\n"))
 }
+# finish up internal statistics
+names(tacStats) <- c("iteration", "obstacleClass", "cells", "victims")
+# export resulting clusters
+write.csv2(cells, "cells_output.csv")
 if(debug) cat("Done.")
