@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.4.20150126
+## Version 0.4.20150127
 ## Author: Konstantin Greger
 ##
 ##
@@ -30,6 +30,7 @@
 ## v.0.3.20150123   use real data from database instead of dummy data
 ##                  disable visualization
 ## v.0.4.20150126   switched to more effective cell handling using update-flag
+## v.0.4.20150127   bug fix for complete model run
 ##
 
 
@@ -41,13 +42,11 @@ library(maptools)
 library(RPostgreSQL)
 source("psqlHelper.R")
 connection <- dbConnect(dbDriver("PostgreSQL"), 
-                        #host = "129.247.221.172", 
-                        host = "localhost", 
+                        host = "129.247.221.172", 
                         port = "5432", 
                         user = "postgres", 
                         password = "postgres", 
-                        #dbname = "tapas")
-                        dbname = "postgres")
+                        dbname = "tapas")
 # relationships
 if(debug) cat(".")
 rel <- psqlGetTable(connection, "temp", "hamburg_relationships")
@@ -85,13 +84,13 @@ if(debug) cat("Initialization finished\n\n")
 if(debug) cat("Starting calculation\n")
 for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
     ## initialize
-    everythingConquered = TRUE # flag to stop calculation
+    everythingConquered = FALSE # flag to stop calculation
     # identify scouting cells
     cells$updated <- !is.na(cells$clust)
     
     ## run
     cat(paste0("----Processing obstClass: ", obstClass, "\n"))
-    while(!everythingConquered || iter == 0) {
+    while(!everythingConquered) {
         iter <- iter + 1
         everythingConquered = TRUE
         attack <- data.frame(attacker = 0,   # initialize dataframe for attacks
@@ -107,46 +106,41 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
                              " cells will scout for cells to be conquered.\n"))
         for(cell in cells$id[cells$updated]) {
             if(debug) cat(paste0("  Cell ", cell, " "))
-            if(with(cells, 
-                    (clust[id == cell] == 0) | (is.na(clust[id == cell])))) {
-                if(debug) cat(paste0("is waiting to be conquered.\n"))
+            if(debug) cat(paste0("belongs to cluster ", 
+                                 with(cells, clust[id == cell]), 
+                                 ", is now trying to conquer neighbors.\n"))
+            # identify suitable candidates:
+            # - neighboring cells
+            # - currently crossable borders
+            cands <- rel[rel$a == cell & 
+                             rel$dst != 0 & 
+                             rel$obst <= obstClass
+                             , ]
+            # - and not conquered yet
+            cands <- cands[is.na(cells$clust[cells$id %in% cands$b]), ]
+            if(dim(cands)[1] == 0) {
+                if(debug) cat(paste0("    No suitable candidates found.\n"))
             } else {
-                if(debug) cat(paste0("belongs to cluster ", 
-                                     with(cells, clust[id == cell]), 
-                                     ", is now trying to conquer neighbors.\n"))
-                # identify suitable candidates:
-                # - neighboring cells
-                # - currently crossable borders
-                cands <- rel[rel$a == cell & 
-                                 rel$dst != 0 & 
-                                 rel$obst <= obstClass
-                                 , ]
-                # - and not conquered yet
-                cands <- cands[is.na(cells$clust[cells$id %in% cands$b]), ]
-                if(dim(cands)[1] == 0) {
-                    if(debug) cat(paste0("    No suitable candidates found.\n"))
-                } else {
-                    everythingConquered = FALSE
-                    candidateList <- character()
-                    if(debug) cat(paste0("    Found ", dim(cands)[1], 
-                                         " suitable cells to be conquered: "))
-                    # collect all attacks (=attempted conqests)
-                    for(cand in 1:dim(cands)[1]) {
-                        candidateList <- paste(candidateList, 
-                                               cands$b[cand], 
-                                               sep = ", ")
-                        attack <- rbind(attack, 
-                                        c(cell,                      # attacker
-                                          cands$b[cand],             # victim   
-                                          cands$dst[cand],           # distance
-                                          cells$clust[cells$id == cell]))
-                                                                     # cluster
-                    }
-                    if(debug) cat(paste0(substr(candidateList, 
-                                                3, 
-                                                nchar(candidateList)), 
-                                         "\n"))
+                everythingConquered = FALSE
+                candidateList <- character()
+                if(debug) cat(paste0("    Found ", dim(cands)[1], 
+                                     " suitable cells to be conquered: "))
+                # collect all attacks (=attempted conqests)
+                for(cand in 1:dim(cands)[1]) {
+                    candidateList <- paste(candidateList, 
+                                           cands$b[cand], 
+                                           sep = ", ")
+                    attack <- rbind(attack, 
+                                    c(cell,                      # attacker
+                                      cands$b[cand],             # victim   
+                                      cands$dst[cand],           # distance
+                                      cells$clust[cells$id == cell]))
+                                                                 # cluster
                 }
+                if(debug) cat(paste0(substr(candidateList, 
+                                            3, 
+                                            nchar(candidateList)), 
+                                     "\n"))
             }
             # don't check this cell in next iteration
             cells$updated[cells$id == cell] <- FALSE
