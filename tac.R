@@ -26,11 +26,13 @@
 ## v.0.4.20150126   switched to more effective cell handling using update-flag
 ## v.0.4.20150127   bug fix for complete model run
 ## v.0.5.20150129   further improved cell handling using completed-flag
+## v.0.5.20150213   implemented execution timing
 ##
 
 
 ### initialize
 debug <- FALSE
+tacStartTime <- proc.time()
 #sink("tac.log")
 ## load data from database
 cat("Initializing TaC algorithm")
@@ -90,6 +92,7 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
     if(debug) cat(paste0("----Processing obstClass: ", obstClass, "\n"))
     while(!everythingConquered) {
         iter <- iter + 1
+        startTime <- proc.time()
         everythingConquered = TRUE
         attack <- data.frame(attacker = 0,   # initialize dataframe for attacks
                              victim = 0, 
@@ -207,12 +210,16 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
                      toDo, 
                      length(unique(attack$victim)), 
                      length(cells$id[!is.na(cells$surrounded)]), 
+                     round(as.double((proc.time() - startTime)[3]), 2), 
                      "\n")))
         tacStats <- rbind(tacStats, c(iter, 
                                       obstClass, 
                                       toDo, 
                                       length(unique(attack$victim)), 
-                                      length(cells$id[!is.na(cells$surrounded)])))
+                                      length(cells$id[!is.na(
+                                          cells$surrounded)]), 
+                                      round(as.double((proc.time() - 
+                                                           startTime)[3]), 2)))
         clustStats <- cbind(clustStats, cells$clust)
     }
     if(debug) cat(paste0("  Everything conquered on obstClass ", 
@@ -238,10 +245,10 @@ ggplot(tacStats) +
                   color = factor(obstacleClass))) + 
     geom_line(aes(iteration, 
                   surrounded, 
-                  size = 1.5, 
+                  size = 1, 
                   color = factor(obstacleClass))) + 
     theme_bw()
 ## export resulting cluster data
 write.csv2(cells, "cells_output.csv")
 
-cat("Done.")
+cat(paste0("Done in ", round(as.double((proc.time() - tacStartTime)[3]), 2), " seconds."))
