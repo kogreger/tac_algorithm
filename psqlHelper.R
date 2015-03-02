@@ -1,7 +1,7 @@
 ##
 ## psqlHelper.R
 ##
-## Version 0.1.20140617
+## Version 0.1.20150227
 ## Author: Konstantin Greger
 ##
 ##
@@ -40,16 +40,32 @@ psqlGetTable <- function(connection, schema, table) {
 }
 
 
-## psqlGetTable is a wrapper to the RPostgreSQL function dbWriteTable. It takes 
+## psqlPutTable is a wrapper to the RPostgreSQL function dbWriteTable. It takes 
 ## an RPostgreSQL connection, a PostgreSQL schema name and a data.frame 
 ## (or an object that can be coerced to one) and returns a boolean.
 ##
-psqlPutTable <- function(connection, schema, table, dataframe, 
+psqlPutTable <- function(dataframe, connection, schema, table, 
                          rownames = FALSE, ...) {
     queryString = paste("SET search_path TO ", schema, "")
     dbGetQuery(connection, queryString)
     success <- dbWriteTable(connection, table, dataframe, 
                             row.names = rownames, ...)
-    dbGetQuery(con, "SET search_path TO \"$user\",public")
+    dbGetQuery(connection, "SET search_path TO \"$user\",public")
+    success
+}
+
+
+## psqlCreatePKey is a wrapper to the RPostgreSQL function dbSendQuery that 
+## creates a primary key on a certain column of a certain table. It takes an 
+## RPostgreSQL connection, a PostgreSQL schema name, table name, column name and
+## pkey name (will be generated when omitted) and returns a boolean.
+##
+psqlCreatePKey <- function(connection, schema, table, column, pkey = "") {
+    if(pkey == "")
+        pkey <- paste("pkey", table, column, sep = "_")
+    queryString <- paste0("ALTER TABLE ", schema, ".", table, 
+                          " ADD CONSTRAINT ", pkey, 
+                          " PRIMARY KEY (", column, ");")
+    success <- dbSendQuery(connection, queryString)
     success
 }

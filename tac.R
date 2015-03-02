@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.5.20150226
+## Version 0.5.20150228
 ## Author: Konstantin Greger
 ##
 ##
@@ -29,16 +29,17 @@
 ## v.0.5.20150213   implemented execution timing
 ## v.0.5.20150227   bug fixes and significant performance improvements, fix of 
 ##                  tacStats visualization
+## v.0.5.20150228   export of result into database
 ##
 
 
 ### initialize
-debug <- TRUE
-sink(paste0("tac_", studyArea,".log"))
 tacStartTime <- proc.time()
-studyArea <- "hamburg"    # braunschweig, hamburg, test
+studyArea <- "braunschweig"    # braunschweig, hamburg, test
+debug <- TRUE
+#sink(paste0("tac_", studyArea,".log"))
 ## load data from database
-cat(paste0("Initializing TaC algorithm v.0.5.20150226 for ", studyArea))
+cat(paste0("Initializing TaC algorithm v.0.5.20150228 for ", studyArea))
 library(dplyr)
 library(ggplot2)
 library(maptools)
@@ -74,7 +75,6 @@ cells <- psqlQuery(connection,
 cells$clust <- seeds$id[match(cells$id, seeds$loc)]
 cells$surrounded <- FALSE
 numOfCells <- nrow(cells)
-invisible(dbDisconnect(connection))
 # internal statistics
 iter <- 0                                   # counter for iterations
 tacStats <- data.frame(iter = integer(),    # data frame for general statistics
@@ -201,7 +201,8 @@ for(obstClass in min(rel$obst):max(rel$obst)) {
                                                            startTime)[3]), 2)))
         clustStats <- cbind(clustStats, cells$clust)
         ## export resulting cluster data
-        write.csv2(cells, paste0("cells_output_", studyArea,".csv"))
+        invisible(psqlPutTable(cells, connection, "temp", 
+                               paste0(studyArea, "_result"), overwrite = TRUE))
     }
     if(debug) cat(paste0("-- Everything conquered on obstClass ", 
                          obstClass, 
@@ -234,6 +235,11 @@ ggplot(melt(select(tacStats, iter, obstClass, toDo, cumSurr),
     theme_bw()
 dev.off()
 ## export resulting cluster data
-write.csv2(cells, paste0("cells_output_", studyArea,".csv"))
+invisible(psqlPutTable(cells, connection, "temp", paste0(studyArea, "_result"), 
+                       overwrite = TRUE))
+invisible(psqlCreatePKey(connection, "temp", paste0(studyArea, "_result"), "id"))
+invisible(dbDisconnect(connection))
 
-cat(paste0("Done in ", round(as.double((proc.time() - tacStartTime)[3]), 2), " seconds."))
+cat(paste0("Done in ", 
+           round(as.double((proc.time() - tacStartTime)[3]), 2), 
+           " seconds.\n\n"))

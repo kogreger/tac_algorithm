@@ -1,12 +1,12 @@
 <!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>
-<qgis version="2.4.0-Chugiak" minimumScale="0" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" simplifyMaxScale="1" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
+<qgis version="2.4.0-Chugiak" minimumScale="-4.65661e-10" maximumScale="1e+08" simplifyDrawingHints="1" minLabelScale="0" maxLabelScale="1e+08" simplifyDrawingTol="1" simplifyMaxScale="1" hasScaleBasedVisibilityFlag="0" simplifyLocal="1" scaleBasedLabelVisibilityFlag="0">
   <renderer-v2 symbollevels="0" type="RuleRenderer">
     <rules>
-      <rule filter=" &quot;cells_output_test_clust&quot; = 'NA'" symbol="0" label="not clustered"/>
-      <rule filter=" &quot;cells_output_test_clust&quot; != 'NA'" symbol="1" label="clustered"/>
-      <rule filter=" &quot;cells_output_test_surrounded&quot;  =  'TRUE' " symbol="2" label="surrounded"/>
-      <rule filter=" &quot;cells_output_test_updated&quot;  =   'TRUE' " symbol="3" label="updated"/>
-      <rule filter=" &quot;cells_output_updated&quot;  =   'TRUE' AND  &quot;cells_output_surrounded&quot;  =  'FALSE' " symbol="4" label="toDo"/>
+      <rule filter=" &quot;test_result_clust&quot;  = NULL" symbol="0" label="not clustered"/>
+      <rule filter=" &quot;test_result_clust&quot; IS NOT NULL" symbol="1" label="clustered"/>
+      <rule filter=" &quot;test_result_surrounded&quot;  =  't' " symbol="2" label="surrounded"/>
+      <rule filter=" &quot;test_result_updated&quot;  =  't' " symbol="3" label="updated"/>
+      <rule filter=" &quot;test_result_updated&quot;  =   't' AND  &quot;test_result_surrounded&quot;  =  'f'" symbol="4" label="toDo"/>
     </rules>
     <symbols>
       <symbol alpha="1" type="fill" name="0">
@@ -258,10 +258,9 @@
     <edittype labelontop="0" editable="1" name="gid"/>
     <edittype labelontop="0" editable="1" name="area"/>
     <edittype labelontop="0" editable="1" name="perimeter"/>
-    <edittype labelontop="0" editable="0" name="cells_output_test_field_1"/>
-    <edittype labelontop="0" editable="0" name="cells_output_test_clust"/>
-    <edittype labelontop="0" editable="0" name="cells_output_test_surrounded"/>
-    <edittype labelontop="0" editable="0" name="cells_output_test_updated"/>
+    <edittype labelontop="0" editable="0" name="test_result_clust"/>
+    <edittype labelontop="0" editable="0" name="test_result_surrounded"/>
+    <edittype labelontop="0" editable="0" name="test_result_updated"/>
   </edittypes>
   <editform>.</editform>
   <editforminit></editforminit>
