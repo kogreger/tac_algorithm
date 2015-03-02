@@ -47,53 +47,53 @@ path
 
 -- - insert road class 7
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 7 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-INTO public.osm_hh_roads 
-FROM public.osm_hh_line 
+INTO public.osm_bs_roads 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'motorway' OR 
 	lower(tags -> 'highway') = 'motorway_link'
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 6
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 6 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'trunk' OR 
 	lower(tags -> 'highway') = 'trunk_link'
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 5
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 5 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'primary' OR 
 	lower(tags -> 'highway') = 'primary_link'
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 4
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 4 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'secondary' OR 
 	lower(tags -> 'highway') = 'secondary_link'
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 3
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 3 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'tertiary' OR 
 	lower(tags -> 'highway') = 'tertiary_link'
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 2
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 2 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'living_street' OR 
 	lower(tags -> 'highway') = 'residential' OR 
@@ -101,9 +101,9 @@ WHERE (
 ) AND ST_GeometryType(way) IN ('ST_LineString');
 
 -- - insert road class 1
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT osm_id, highway AS osm_highway, tags -> 'name' AS osm_name, 1 AS tac_class, ST_Transform(way, 4326) AS the_geom 
-FROM public.osm_hh_line 
+FROM public.osm_bs_line 
 WHERE (
 	lower(tags -> 'highway') = 'bridleway' OR 
 	lower(tags -> 'highway') = 'cycleway' OR
@@ -118,7 +118,7 @@ WHERE (
 
 -- - insert outline as road class 99
 --   (cf. http://longwayaround.org.uk/notes/disaggregate-multilinestrings-using-st_dump-postgis/)
-INSERT INTO public.osm_hh_roads 
+INSERT INTO public.osm_bs_roads 
 SELECT simple.osm_id + simple.path[1] as osm_id, -- generate quasi-unique osm ids
 	'outline' AS osm_highway, 
 	'Hamburg' AS osm_name, 
@@ -133,7 +133,7 @@ FROM
 	(
 		SELECT osm_id, 
 			ST_Dump(ST_Union(ST_Transform(way, 4326))) AS geom_dump 
-		FROM public.osm_hh_line 
+		FROM public.osm_bs_line 
 		WHERE (
 			"admin_level" = '4' AND 
 			"name" = 'Hamburg' AND 
@@ -143,14 +143,14 @@ FROM
 	) AS dumped
 ) AS simple
 
-SELECT populate_geometry_columns('public.osm_hh_roads'::regclass); 
+SELECT populate_geometry_columns('public.osm_bs_roads'::regclass); 
 
-CREATE INDEX sidx_osm_hh_roads_the_geom 
-ON osm_hh_roads 
+CREATE INDEX sidx_osm_bs_roads_the_geom 
+ON osm_bs_roads 
 USING gist 
 (the_geom);
 
-ALTER TABLE osm_hh_roads
-ADD CONSTRAINT pkey_osm_hh_roads PRIMARY KEY (osm_id);
+ALTER TABLE osm_bs_roads
+ADD CONSTRAINT pkey_osm_bs_roads PRIMARY KEY (osm_id);
 
-VACUUM FULL VERBOSE ANALYZE public.osm_hh_roads;
+VACUUM FULL VERBOSE ANALYZE public.osm_bs_roads;

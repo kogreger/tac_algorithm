@@ -1,0 +1,307 @@
+Initializing TaC algorithm v.0.5.20150226 for test.... done.
+
+Starting calculation
+-- Processing obstClass: 1
+- Iteration #1
+4 cells will scout for cells to be conquered.
+Battles for 15 cells will be fought.
+All neighboring cells of cells 16198, 16284, 16315 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         1 
+Obstacle class:    1 
+Conquering cells:  4 
+Attacked cells:    15 
+Surrounded cells:  3 
+Calculation time:  0.75 
+--
+
+- Iteration #2
+12 cells will scout for cells to be conquered.
+Battles for 7 cells will be fought.
+All neighboring cells of cells 16242, 16294 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         2 
+Obstacle class:    1 
+Conquering cells:  12 
+Attacked cells:    7 
+Surrounded cells:  2 
+Calculation time:  0.47 
+--
+
+- Iteration #3
+6 cells will scout for cells to be conquered.
+-- 
+Iteration:         3 
+Obstacle class:    1 
+Conquering cells:  6 
+Attacked cells:    0 
+Surrounded cells:  2 
+Calculation time:  0.19 
+--
+
+-- Everything conquered on obstClass 1, climbing to next obstClass.
+-- Processing obstClass: 2
+- Iteration #4
+21 cells will scout for cells to be conquered.
+Battles for 20 cells will be fought.
+All neighboring cells of cells 16210, 16291, 16365, 16405, 16415, 16612, 16657, 16778, 17064 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         4 
+Obstacle class:    2 
+Conquering cells:  21 
+Attacked cells:    20 
+Surrounded cells:  9 
+Calculation time:  0.38 
+--
+
+- Iteration #5
+17 cells will scout for cells to be conquered.
+Battles for 22 cells will be fought.
+All neighboring cells of cells 16211, 16445, 16541, 16628, 16682, 16684, 16697, 16705, 16723, 16894, 16972, 19766 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         5 
+Obstacle class:    2 
+Conquering cells:  17 
+Attacked cells:    22 
+Surrounded cells:  12 
+Calculation time:  0.06 
+--
+
+- Iteration #6
+17 cells will scout for cells to be conquered.
+Battles for 18 cells will be fought.
+All neighboring cells of cells 15475, 15496, 15552, 16265, 16357, 16380, 17168, 17230, 17341, 17427, 17490, 20434, 23429, 23814, 24075, 24085, 24091, 24098 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         6 
+Obstacle class:    2 
+Conquering cells:  17 
+Attacked cells:    18 
+Surrounded cells:  18 
+Calculation time:  0.01 
+--
+
+- Iteration #7
+13 cells will scout for cells to be conquered.
+Battles for 8 cells will be fought.
+All neighboring cells of cells 15551, 16289, 16327, 16395, 16396, 16402, 23822, 23970 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         7 
+Obstacle class:    2 
+Conquering cells:  13 
+Attacked cells:    8 
+Surrounded cells:  8 
+Calculation time:  0.01 
+--
+
+- Iteration #8
+6 cells will scout for cells to be conquered.
+-- 
+Iteration:         8 
+Obstacle class:    2 
+Conquering cells:  6 
+Attacked cells:    0 
+Surrounded cells:  8 
+Calculation time:  0.02 
+--
+
+-- Everything conquered on obstClass 2, climbing to next obstClass.
+-- Processing obstClass: 3
+- Iteration #9
+42 cells will scout for cells to be conquered.
+Battles for 16 cells will be fought.
+All neighboring cells of cells 15450, 15451, 15474, 15571, 15576, 15590, 15594, 16881, 17003, 17110, 17311, 17447, 17523, 17545, 23322, 23522, 23555, 23572 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         9 
+Obstacle class:    3 
+Conquering cells:  42 
+Attacked cells:    16 
+Surrounded cells:  18 
+Calculation time:  0.01 
+--
+
+- Iteration #10
+11 cells will scout for cells to be conquered.
+Battles for 14 cells will be fought.
+All neighboring cells of cells 17152, 17460, 17480, 23337, 23499, 23506, 23569, 23836 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         10 
+Obstacle class:    3 
+Conquering cells:  11 
+Attacked cells:    14 
+Surrounded cells:  8 
+Calculation time:  0.04 
+--
+
+- Iteration #11
+10 cells will scout for cells to be conquered.
+Battles for 5 cells will be fought.
+All neighboring cells of cells 23811, 23819, 23849, 23853, 23866, 23871, 23917, 23924, 23944 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         11 
+Obstacle class:    3 
+Conquering cells:  10 
+Attacked cells:    5 
+Surrounded cells:  9 
+Calculation time:  0.04 
+--
+
+- Iteration #12
+4 cells will scout for cells to be conquered.
+Battles for 3 cells will be fought.
+All neighboring cells of cells 23916, 23938, 23941, 23962, 23964, 23980, 23981, 24015 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         12 
+Obstacle class:    3 
+Conquering cells:  4 
+Attacked cells:    3 
+Surrounded cells:  8 
+Calculation time:  0.01 
+--
+
+- Iteration #13
+1 cells will scout for cells to be conquered.
+Battles for 7 cells will be fought.
+All neighboring cells of cells 19992, 23982, 24053, 24056, 24103, 24159 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         13 
+Obstacle class:    3 
+Conquering cells:  1 
+Attacked cells:    7 
+Surrounded cells:  6 
+Calculation time:  0.03 
+--
+
+- Iteration #14
+5 cells will scout for cells to be conquered.
+Battles for 3 cells will be fought.
+All neighboring cells of cells 19752, 20066, 24246, 24247, 24257, 24276, 24279 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         14 
+Obstacle class:    3 
+Conquering cells:  5 
+Attacked cells:    3 
+Surrounded cells:  7 
+Calculation time:  0.04 
+--
+
+- Iteration #15
+2 cells will scout for cells to be conquered.
+Battles for 4 cells will be fought.
+All neighboring cells of cells 19755, 19821, 20119 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         15 
+Obstacle class:    3 
+Conquering cells:  2 
+Attacked cells:    4 
+Surrounded cells:  3 
+Calculation time:  0.01 
+--
+
+- Iteration #16
+3 cells will scout for cells to be conquered.
+Battles for 1 cells will be fought.
+All neighboring cells of cells 19775, 19874 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         16 
+Obstacle class:    3 
+Conquering cells:  3 
+Attacked cells:    1 
+Surrounded cells:  2 
+Calculation time:  0.04 
+--
+
+- Iteration #17
+1 cells will scout for cells to be conquered.
+-- 
+Iteration:         17 
+Obstacle class:    3 
+Conquering cells:  1 
+Attacked cells:    0 
+Surrounded cells:  2 
+Calculation time:  0 
+--
+
+-- Everything conquered on obstClass 3, climbing to next obstClass.
+-- Processing obstClass: 4
+- Iteration #18
+34 cells will scout for cells to be conquered.
+Battles for 2 cells will be fought.
+All neighboring cells of cells 16109, 16156 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         18 
+Obstacle class:    4 
+Conquering cells:  34 
+Attacked cells:    2 
+Surrounded cells:  2 
+Calculation time:  0.03 
+--
+
+- Iteration #19
+1 cells will scout for cells to be conquered.
+-- 
+Iteration:         19 
+Obstacle class:    4 
+Conquering cells:  1 
+Attacked cells:    0 
+Surrounded cells:  2 
+Calculation time:  0.02 
+--
+
+-- Everything conquered on obstClass 4, climbing to next obstClass.
+-- Processing obstClass: 5
+- Iteration #20
+34 cells will scout for cells to be conquered.
+Battles for 30 cells will be fought.
+All neighboring cells of cells 15441, 15442, 15481, 15489, 15554, 15555, 16051, 16131, 16143, 16146, 16203, 16319, 16378, 16412, 17011, 17364, 17407, 17425, 17426, 17442, 17527, 19753, 19754, 19783, 19993, 20281, 20320, 20338, 20376, 20404, 20467, 20475, 20526, 20539, 20566, 20622, 21290, 23365, 23397, 23428, 23444, 23447, 23452, 23467, 23478, 23487, 23491, 23502, 23519, 23528, 23529, 23548, 23611, 23638, 23663 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         20 
+Obstacle class:    5 
+Conquering cells:  34 
+Attacked cells:    30 
+Surrounded cells:  55 
+Calculation time:  0.03 
+--
+
+- Iteration #21
+9 cells will scout for cells to be conquered.
+Battles for 10 cells will be fought.
+All neighboring cells of cells 15458, 15999, 16015, 16091, 17439, 17503, 20420, 20447, 20500, 20549, 20565, 20785, 20814 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         21 
+Obstacle class:    5 
+Conquering cells:  9 
+Attacked cells:    10 
+Surrounded cells:  13 
+Calculation time:  0.03 
+--
+
+- Iteration #22
+6 cells will scout for cells to be conquered.
+Battles for 4 cells will be fought.
+All neighboring cells of cells 20465, 20530, 20556, 20578, 20773, 20786, 20866, 20881, 20902, 20947 have been conquered, hence these cells will not be checked in upcoming iterations.
+-- 
+Iteration:         22 
+Obstacle class:    5 
+Conquering cells:  6 
+Attacked cells:    4 
+Surrounded cells:  10 
+Calculation time:  0.03 
+--
+
+- Iteration #23
+0 cells will scout for cells to be conquered.
+-- 
+Iteration:         23 
+Obstacle class:    5 
+Conquering cells:  0 
+Attacked cells:    0 
+Surrounded cells:  10 
+Calculation time:  0 
+--
+
+-- Everything conquered on obstClass 5, climbing to next obstClass.
+null device 
+          1 
+Done in 25.29 seconds.null device 
+          1 
+Done in 474.66 seconds.

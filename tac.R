@@ -1,7 +1,7 @@
 ##
 ## tac.R
 ##
-## Version 0.5.20150129
+## Version 0.5.20150226
 ## Author: Konstantin Greger
 ##
 ##
@@ -21,23 +21,28 @@
 ##
 ## Change log:
 ## v.0.2.20150120   switched to swarm conquering
-## v.0.3.20150123   use real data from database instead of dummy data
-##                  disable visualization
+## v.0.3.20150123   use real data from database instead of dummy data, disable
+##                  map visualization
 ## v.0.4.20150126   switched to more effective cell handling using update-flag
 ## v.0.4.20150127   bug fix for complete model run
 ## v.0.5.20150129   further improved cell handling using completed-flag
 ## v.0.5.20150213   implemented execution timing
+## v.0.5.20150227   bug fixes and significant performance improvements, fix of 
+##                  tacStats visualization
 ##
 
 
 ### initialize
-debug <- FALSE
+debug <- TRUE
+sink(paste0("tac_", studyArea,".log"))
 tacStartTime <- proc.time()
-#sink("tac.log")
+studyArea <- "hamburg"    # braunschweig, hamburg, test
 ## load data from database
-cat("Initializing TaC algorithm")
+cat(paste0("Initializing TaC algorithm v.0.5.20150226 for ", studyArea))
+library(dplyr)
 library(ggplot2)
 library(maptools)
+library(reshape2)
 library(RPostgreSQL)
 source("psqlHelper.R")
 connection <- dbConnect(dbDriver("PostgreSQL"), 
@@ -48,181 +53,157 @@ connection <- dbConnect(dbDriver("PostgreSQL"),
                         dbname = "tapas")
 # relationships
 if(debug) cat(".")
-rel <- psqlGetTable(connection, "temp", "hamburg_relationships")
-numOfRelationships <- dim(rel)[1]
-numOfObstacleClasses <- range(rel$obst)[2] - range(rel$obst)[1] + 1
+rel <- psqlGetTable(connection, "temp", paste0(studyArea, "_relationships"))
+numOfRelationships <- nrow(rel)
+numOfObstacleClasses <- max(rel$obst) - min(rel$obst) + 1
 # seeds
 if(debug) cat(".")
 seeds <- psqlQuery(connection, 
                    paste0("SELECT s.gid id, c.gid loc ", 
-                          "FROM temp.hamburg_seeds s, temp.hamburg_cells c ", 
+                          "FROM temp.", studyArea, "_seeds s, ", 
+                          "temp.", studyArea, "_cells c ", 
                           "WHERE ST_Within(s.the_geom, c.the_geom) ", 
                           "ORDER BY s.gid"))
-numOfSeeds <- dim(seeds)[1]
+numOfSeeds <- nrow(seeds)
 # cells
 if(debug) cat(".")
 cells <- psqlQuery(connection, 
                    paste0("SELECT DISTINCT(a) id ", 
-                          "FROM temp.hamburg_relationships ", 
+                          "FROM temp.", studyArea, "_relationships ", 
                           "ORDER BY a"))
 cells$clust <- seeds$id[match(cells$id, seeds$loc)]
-cells$surrounded <- NA
-numOfCells <- dim(cells)[1]
-dbDisconnect(connection)
+cells$surrounded <- FALSE
+numOfCells <- nrow(cells)
+invisible(dbDisconnect(connection))
 # internal statistics
 iter <- 0                                   # counter for iterations
 tacStats <- data.frame(iter = integer(),    # data frame for general statistics
                        obstClass = integer(), 
                        battles = integer())
 clustStats <- matrix(cells$clust)           # matrix for cluster statistics
-if(debug) cat(".\n")
-cat("Initialization finished\n\n")
+if(debug) cat(".")
+cat(" done.\n\n")
 
 
 
 ### start algorithm
 cat("Starting calculation\n")
-for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
+for(obstClass in min(rel$obst):max(rel$obst)) {
     ## initialize
-    everythingConquered = FALSE # flag to stop calculation
+    everythingConquered = FALSE    # flag to stop calculation
     # identify scouting cells
-    cells$updated <- !is.na(cells$clust)
+    scouting <- filter(cells, !is.na(clust), !surrounded) %>%
+        collect %>% 
+        .[["id"]]
+    cells$updated[cells$id %in% scouting] <- TRUE
     
     ## run
-    if(debug) cat(paste0("----Processing obstClass: ", obstClass, "\n"))
+    if(debug) cat(paste0("-- Processing obstClass: ", obstClass, "\n"))
     while(!everythingConquered) {
         iter <- iter + 1
         startTime <- proc.time()
         everythingConquered = TRUE
-        attack <- data.frame(attacker = 0,   # initialize dataframe for attacks
-                             victim = 0, 
-                             dst = 0, 
-                             cluster = 0)
-        if(debug) cat(paste0("--Iteration #", iter, "\n"))
+        if(debug) cat(paste0("- Iteration #", iter, "\n"))
         
         ## scout for suitable cells to be conquered by cells that have been 
         ##  updated in previous iteration (or from start)
-        toDo <- length(cells$id[cells$updated & is.na(cells$surrounded)])
-        if(debug) cat(paste0(toDo, 
+        toDo <- cells %>% 
+            filter(updated, !surrounded) %>% 
+            collect %>% 
+            .[["id"]]
+        if(debug) cat(paste0(length(toDo), 
                              " cells will scout for cells to be conquered.\n"))
-        for(cell in cells$id[cells$updated & is.na(cells$surrounded)]) {
-            if(debug) cat(paste0("  Cell ", cell, " "))
-            if(debug) cat(paste0("has ", 
-                                 nrow(rel[rel$a == cell, ]), 
-                                 " neighbors, "))
-            if(debug) cat(paste0("belongs to cluster ", 
-                                 with(cells, clust[id == cell]), 
-                                 ", and is now trying to conquer neighbors.\n"))
-            # identify suitable candidates:
-            # - neighboring cells
-            # - currently crossable borders
-            cands <- rel[rel$a == cell & 
-                             rel$dst != 0 & 
-                             rel$obst <= obstClass
-                             , ]
-            # - and not conquered yet
-            cands <- cands[is.na(cells$clust[cells$id %in% cands$b]), ]
-            if(dim(cands)[1] == 0) {
-                if(debug) cat(paste0("    No suitable candidates found.\n"))
-            } else {
-                everythingConquered = FALSE
-                candidateList <- character()
-                if(debug) cat(paste0("    Found ", dim(cands)[1], 
-                                     " suitable cells to be conquered: "))
-                # collect all attacks (=attempted conqests)
-                for(cand in 1:dim(cands)[1]) {
-                    candidateList <- paste(candidateList, 
-                                           cands$b[cand], 
-                                           sep = ", ")
-                    attack <- rbind(attack, 
-                                    c(cell,                      # attacker
-                                      cands$b[cand],             # victim   
-                                      cands$dst[cand],           # distance
-                                      cells$clust[cells$id == cell]))
-                                                                 # cluster
-                }
-                if(debug) cat(paste0(substr(candidateList, 
-                                            3, 
-                                            nchar(candidateList)), 
-                                     "\n"))
-            }
-            # don't check this cell in next iteration
-            cells$updated[cells$id == cell] <- FALSE
-        }
-        
+        # identify attacks:
+        # - neighboring cells
+        # - currently crossable borders
+        # - and not conquered yet
+        attacks <- filter(rel, a %in% toDo, dst != 0, obst <= obstClass) %>%
+            left_join(cells, by = c("a" = "id")) %>% 
+            left_join(cells, by = c("b" = "id")) %>% 
+            filter(is.na(clust.y)) %>% 
+            select(attacker = a, victim = b, dst, cluster = clust.x) %>% 
+            arrange(victim)
+        # don't check attacker cells in next iteration
+        cells$updated[cells$id %in% toDo] <- FALSE
+        if(nrow(attacks) != 0) 
+            everythingConquered = FALSE
+                
         ## fight actual battles for cells
         if(!everythingConquered) {
-            # remove dummy row and order attacks by victim cell id
-            attack <- subset(attack[order(attack$victim), ], victim != 0)
-            if(debug) cat(paste0("  Battles for ", 
-                                 length(unique(attack$victim)), 
+            if(debug) cat(paste0("Battles for ", 
+                                 nrow(group_by(attacks, victim) %>% 
+                                          summarize(attackers = n())), 
                                  " cells will be fought.\n"))
-            # identify winner for each battled cell (victim)
-            for(vic in unique(attack$victim)) {
-                if(debug) cat(paste0("    Battle for cell ", vic, ": "))
-                battle <- subset(attack, victim == vic)
-                if(dim(battle)[1] == 1) {
-                    # there is only one attacker for this cell
-                    if(debug) cat(paste0("No conflict, no battle.\n"))
-                } else {
-                    # there are multiple attackers for this cell
-                    # introduce random variable to handle ties
-                    battle$rnd <- sample(1:dim(battle)[1], 
-                                         dim(battle)[1], 
-                                         replace = FALSE)
-                    # order attackers:
-                    # - by minimum distance
-                    # - by random variable in case of ties
-                    battle <- battle[with(battle, order(dst, rnd)), ]
-                    if(debug) cat(paste0("Attacker ", 
-                                         battle$attacker[1], 
-                                         " won.\n"))
-                }
-                if(debug) cat(paste0("    Attacker ", 
-                                     battle$attacker[1], 
-                                     " conquered cell ", 
-                                     battle$victim[1], ".\n"))
-                # update cluster information in cell data
-                cells$clust[cells$id == vic] <- battle$cluster[1]
-                # mark cell to be checked in next iteration
-                cells$updated[cells$id == vic] <- TRUE
-                # check if all neighbors of this cell have been conquered
-                neighbors <- rel$b[rel$a == vic]
-                neighbors <- neighbors[is.na(cells$clust[cells$id %in% 
-                                                             neighbors])]
-                if(length(neighbors) == 0) {
-                    if(debug) cat(paste0("    All ", 
-                                         nrow(rel[rel$a == vic, ]), 
-                                         " neighboring cells of cell ", 
-                                         vic, 
-                                         " have been conquered, cell will not ", 
-                                         "be checked in upcoming iterations.", 
-                                         "\n"))
-                    # set surrounded flag to current iteration
-                    cells$surrounded[cells$id == vic] <- iter
-                }
-            }
+            # identify winner for each victim cell using minimum distance of
+            #  attacker cell
+            conquests <- group_by(attacks, victim) %>% 
+                filter(rank(dst) == 1) %>% 
+                select(attacker, victim, cluster)
+            # assign conquered victims to winning attacker's cluster:
+            #  - update cluster information in cell data
+            #  - mark cell to be checked in next iteration
+            cells[cells$id %in% 
+                      conquests$victim, c(2, 4)] <- list(conquests$cluster, 
+                                                         TRUE)
+            # check for cells whose neighbors have all been conquered
+            notSurrounded <- 
+                filter(cells, !surrounded) %>% 
+                left_join(rel, by = c("id" = "a")) %>% 
+                left_join(cells, by = c("b" = "id")) %>% 
+                group_by(id, clust.y) %>% 
+                summarize(count = n()) %>% 
+                filter(is.na(clust.y)) %>% 
+                collect %>% 
+                .[["id"]]
+            surrounded <- 
+                filter(cells, !surrounded, !is.na(clust), 
+                       !(id %in% notSurrounded)) %>% 
+                collect %>% 
+                .[["id"]]
+            # set surrounded flag
+            cells$surrounded[cells$id %in% surrounded] <- TRUE
+            if(debug)
+                if(length(surrounded) > 0) 
+                    cat(paste0("All neighboring cells of cells ", 
+                               paste(surrounded, collapse = ', '), 
+                               " have been conquered, hence these cells will ", 
+                               "not be checked in upcoming iterations.\n"))
         }
+        
         # update internal statistics
-        cat(paste0(c("--", 
-                     iter, 
-                     obstClass, 
-                     toDo, 
-                     length(unique(attack$victim)), 
-                     length(cells$id[!is.na(cells$surrounded)]), 
-                     round(as.double((proc.time() - startTime)[3]), 2), 
-                     "\n")))
+        if(debug)
+            cat(paste0(c("--", 
+                         "\nIteration:        ", 
+                         iter, 
+                         "\nObstacle class:   ", 
+                         obstClass, 
+                         "\nConquering cells: ", 
+                         length(toDo), 
+                         "\nAttacked cells:   ", 
+                         nrow(group_by(attacks, victim) %>% 
+                                  summarize(victims = n())), 
+                         "\nSurrounded cells: ", 
+                         length(surrounded), 
+                         "\nCalculation time: ", 
+                         round(as.double((proc.time() - startTime)[3]), 2), 
+                         "\n--\n\n")))
         tacStats <- rbind(tacStats, c(iter, 
                                       obstClass, 
-                                      toDo, 
-                                      length(unique(attack$victim)), 
-                                      length(cells$id[!is.na(
-                                          cells$surrounded)]), 
+                                      length(toDo), 
+                                      nrow(group_by(attacks, victim) %>% 
+                                               summarize(victims = n())), 
+                                      length(surrounded), 
+                                      filter(cells, surrounded) %>% 
+                                          summarize(cumSurr = n()) %>% 
+                                          collect %>% 
+                                          .[["cumSurr"]], 
                                       round(as.double((proc.time() - 
                                                            startTime)[3]), 2)))
         clustStats <- cbind(clustStats, cells$clust)
+        ## export resulting cluster data
+        write.csv2(cells, paste0("cells_output_", studyArea,".csv"))
     }
-    if(debug) cat(paste0("  Everything conquered on obstClass ", 
+    if(debug) cat(paste0("-- Everything conquered on obstClass ", 
                          obstClass, 
                          ", climbing to next obstClass.\n"))
 }
@@ -232,23 +213,27 @@ for(obstClass in range(rel$obst)[1]:range(rel$obst)[2]) {
 ### wrap up
 ## internal statistics
 # finish up
-names(tacStats) <- c("iteration", "obstacleClass", "cells", "victims", "surrounded")
-# visualize
-ggplot(tacStats) + 
-    geom_line(aes(iteration, 
-                  cells, 
-                  linetype = "dashed", 
-                  color = factor(obstacleClass))) + 
-    geom_line(aes(iteration, 
-                  victims, 
-                  linetype = "dotted", 
-                  color = factor(obstacleClass))) + 
-    geom_line(aes(iteration, 
-                  surrounded, 
-                  size = 1, 
-                  color = factor(obstacleClass))) + 
+names(tacStats) <- c("iter", "obstClass", "toDo", "victims", "surr", "cumSurr", 
+                     "procTime")
+# visualize internal statistics
+png(filename = paste0("tacStats_", studyArea,".png"),
+    width = 17, height = 11.15, units = "cm", res = 300, pointsize = 10)
+ggplot(melt(select(tacStats, iter, obstClass, toDo, cumSurr), 
+            id = c("iter", "obstClass"))) + 
+    geom_line(aes(x = iter, 
+                  y = value, 
+                  linetype = variable, 
+                  color = factor(obstClass)), 
+    ) + 
+    scale_linetype_manual(values = c("dashed", "solid"), 
+                          labels = c("Scouting", "Completed")) + 
+    scale_x_continuous(name = "Iterations") + 
+    scale_y_continuous(name = "Cells") + 
+    guides(linetype = guide_legend(title = "Cells"), 
+           color = guide_legend(title = "Obstacle Class")) + 
     theme_bw()
+dev.off()
 ## export resulting cluster data
-write.csv2(cells, "cells_output.csv")
+write.csv2(cells, paste0("cells_output_", studyArea,".csv"))
 
 cat(paste0("Done in ", round(as.double((proc.time() - tacStartTime)[3]), 2), " seconds."))
